@@ -64,7 +64,30 @@ namespace zeek::logging::writer {
 
 	bool AMQP::DoHeartbeat(double network_time, double current_time) { return true; }
 
-	bool AMQP::DoFinish(double network_time) { return true; }
+	bool AMQP::DoFinish(double network_time) {
+		//close channel
+        if(!handle_amqp_error(amqp_channel_close(this->amqp_conn,
+            1,
+            AMQP_REPLY_SUCCESS),
+            "Closing Channel")) {
+            return false;
+        }
+
+		//close connection
+        if(!handle_amqp_error(amqp_connection_close(this->amqp_conn,
+            AMQP_REPLY_SUCCESS),
+            "Closing connection")) {
+            return false;
+        }
+
+		//destroy connection state
+        int destroy_result = amqp_destroy_connection(this->amqp_conn);
+        if(destroy_result != 0) {
+            Error(Fmt("%s: %s\n", "Destroying connection", amqp_error_string2(destroy_result)));
+            return false;
+        }
+        return true;
+	}
 
 	bool AMQP::handle_amqp_error(amqp_rpc_reply_t x, char const *context) {
         switch (x.reply_type) {
