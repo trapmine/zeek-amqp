@@ -3,9 +3,16 @@
 namespace zeek::logging::writer {
 	AMQP::AMQP(WriterFrontend* frontend) : WriterBackend(frontend) {}
 
-	AMQP::~AMQP() {}
+	AMQP::~AMQP() {
+		delete this->tagged_json_formatter;
+	}
 
     bool AMQP::DoInit(const WriterInfo& info, int num_fields, const zeek::threading::Field* const* fields) {
+		//initialize log formatter
+		this->tagged_json_formatter = new zeek::threading::formatter::TaggedJSON(info.path,
+            this,
+            zeek::threading::formatter::JSON::TS_EPOCH);
+
 		//create connection state and a new socket associated with this connection
 		this->amqp_conn = amqp_new_connection();
 		amqp_socket_t *socket = amqp_tcp_socket_new(this->amqp_conn);

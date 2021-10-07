@@ -3,11 +3,14 @@
 
 #include <cstring>
 #include <zeek/logging/WriterBackend.h>
+#include <zeek/Desc.h>
+#include <zeek/threading/formatters/JSON.h>
 #include <zeek/util.h>
 #include <rabbitmq-c/amqp.h>
 #include <rabbitmq-c/tcp_socket.h>
 
 #include "amqpwriter.bif.h"
+#include "TaggedJSON.h"
 
 namespace zeek::logging::writer {
 	class AMQP : public WriterBackend {
@@ -30,6 +33,9 @@ namespace zeek::logging::writer {
 
 		private:
 			amqp_connection_state_t amqp_conn;
+			zeek::threading::formatter::TaggedJSON* tagged_json_formatter;
+			ODesc desc;
+
 			bool handle_amqp_error(amqp_rpc_reply_t x, char const *context);
 	};
 }
