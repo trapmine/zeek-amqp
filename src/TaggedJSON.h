@@ -22,3 +22,5 @@ namespace zeek::threading::formatter {
         std::string log_name;
     };
 }
+
+#endif
