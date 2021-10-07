@@ -6,21 +6,20 @@
 plugin_usage()
 {
     : # Do nothing
-#    cat <<EOF
-#    --with-foo=DIR          Path to foo
-# EOF
+    cat <<EOF
+	--with-rabbitmq-c=PATH
+EOF
 }
 
 plugin_option()
 {
-    case "$1" in
-#        --with-foo=*)
-#            append_cache_entry FOO_DIR PATH $optarg
-#            return 0
-#            ;;
-
+	case "$1" in
+		--with-rabbitmq-c=*)
+		append_cache_entry LIB_RABBITMQ_C_ROOT_DIR PATH "${optarg}"
+		return 0
+		;;
         *)
-            return 1;
-            ;;
-    esac
+		return 1;
+		;;
+	esac
 }
