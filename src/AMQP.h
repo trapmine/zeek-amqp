@@ -1,7 +1,12 @@
 #ifndef ZEEK_AMQP_WRITER_H
 #define ZEEK_AMQP_WRITER_H
 
+#include <cstring>
 #include <zeek/logging/WriterBackend.h>
+#include <zeek/util.h>
+#include <rabbitmq-c/amqp.h>
+#include <rabbitmq-c/tcp_socket.h>
+
 #include "amqpwriter.bif.h"
 
 namespace zeek::logging::writer {
@@ -22,6 +27,10 @@ namespace zeek::logging::writer {
 			virtual bool DoFlush(double network_time);
 			virtual bool DoFinish(double network_time);
 			virtual bool DoHeartbeat(double network_time, double current_time);
+
+		private:
+			amqp_connection_state_t amqp_conn;
+			bool handle_amqp_error(amqp_rpc_reply_t x, char const *context);
 	};
 }
 
