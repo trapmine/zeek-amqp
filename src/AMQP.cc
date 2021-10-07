@@ -61,7 +61,37 @@ namespace zeek::logging::writer {
 		return true;
 	}
 
-	bool AMQP::DoWrite(int num_fields, const zeek::threading::Field* const* fields, zeek::threading::Value** vals) { return true; }
+	bool AMQP::DoWrite(int num_fields, const zeek::threading::Field* const* fields, zeek::threading::Value** vals) {
+		//clear the buffer and write the log entry in the buffer
+        ODesc buff;
+        buff.Clear();
+        this->tagged_json_formatter->Describe(&buff, num_fields, fields, vals);
+
+		//create amqp properties for publishing message
+        amqp_basic_properties_t props;
+        props._flags = AMQP_BASIC_CONTENT_TYPE_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG;
+        props.content_type = amqp_cstring_bytes("text/plain");
+        props.delivery_mode = AMQP_DELIVERY_NONPERSISTENT;
+
+		//publish amqp message
+        int publish_result = amqp_basic_publish(
+            this->amqp_conn,
+            1, //channel
+            amqp_cstring_bytes(""), //exchange
+            amqp_cstring_bytes("test_queue"), //routing key
+            0, // mandatory
+            0, // immediate
+            &props, // properties
+            amqp_cstring_bytes((const char *)buff.Bytes()) // log entry
+        );
+
+        if(publish_result != 0) {
+            Error(Fmt("%s: %s\n", "Publishing log entry", amqp_error_string2(publish_result)));
+            return false;
+        }
+
+		return true;
+	}
 
 	bool AMQP::DoSetBuf(bool enabled) { return true; }
 
