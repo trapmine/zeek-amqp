@@ -12,6 +12,10 @@
 #include "amqpwriter.bif.h"
 #include "TaggedJSON.h"
 
+namespace zeek::plugin::Trapmine_AMQPWriter {
+	class Plugin;
+}
+
 namespace zeek::logging::writer {
 	class AMQP : public WriterBackend {
 		public:
@@ -32,6 +36,7 @@ namespace zeek::logging::writer {
 			virtual bool DoHeartbeat(double network_time, double current_time);
 
 		private:
+			friend class zeek::plugin::Trapmine_AMQPWriter::Plugin;
 			amqp_connection_state_t amqp_conn;
 			zeek::threading::formatter::TaggedJSON* tagged_json_formatter;
 			ODesc desc;

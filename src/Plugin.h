@@ -2,6 +2,7 @@
 #pragma once
 
 #include <zeek/plugin/Plugin.h>
+#include "AMQP.h"
 
 namespace plugin {
 namespace Trapmine_AMQPWriter {

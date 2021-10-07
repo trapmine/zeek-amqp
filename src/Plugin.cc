@@ -7,6 +7,8 @@ using namespace plugin::Trapmine_AMQPWriter;
 
 zeek::plugin::Configuration Plugin::Configure()
 	{
+	AddComponent(new zeek::logging::Component("AMQP",zeek::logging::writer::AMQP::Instantiate));
+
 	zeek::plugin::Configuration config;
 	config.name = "Trapmine::AMQPWriter";
 	config.description = "Sends logs to AMQP Exchange";
