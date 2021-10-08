@@ -2,4 +2,4 @@
 Trapmine::AMQPWriter
 =================================
 
-<Insert plugin documentation here.>
+A Zeek plugin to send logs to RabbitMQ using AMQP.
