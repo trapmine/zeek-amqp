@@ -2,11 +2,95 @@
 
 namespace zeek::logging::writer {
 	AMQP::AMQP(WriterFrontend* frontend) : WriterBackend(frontend) {
-
+		InitConfigOptions();
+		bool filter_options = InitFilterOptions();
+		bool check_options = CheckAllOptions();
+		this->init_options = filter_options && check_options;
 	}
 
 	AMQP::~AMQP() {
 		delete this->tagged_json_formatter;
+	}
+
+	void AMQP::InitConfigOptions() {
+		this->hostname.assign((const char *)BifConst::LogAMQP::hostname->Bytes(),BifConst::LogAMQP::hostname->Len());
+		this->port = BifConst::LogAMQP::amqp_port;
+		this->vhost.assign((const char *)BifConst::LogAMQP::vhost->Bytes(),BifConst::LogAMQP::vhost->Len());
+		this->username.assign((const char *)BifConst::LogAMQP::username->Bytes(),BifConst::LogAMQP::username->Len());
+		this->password.assign((const char *)BifConst::LogAMQP::password->Bytes(),BifConst::LogAMQP::password->Len());
+		this->queue_name.assign((const char *)BifConst::LogAMQP::queue_name->Bytes(),BifConst::LogAMQP::queue_name->Len());
+		this->exchange.assign((const char *)BifConst::LogAMQP::exchange->Bytes(),BifConst::LogAMQP::exchange->Len());
+		this->routing_key.assign((const char *)BifConst::LogAMQP::routing_key->Bytes(),BifConst::LogAMQP::routing_key->Len());
+	}
+
+	bool AMQP::InitFilterOptions() {
+		const WriterInfo& info = Info();
+		for (WriterInfo::config_map::const_iterator i = info.config.begin(); i != info.config.end(); i++) {
+			if(strcmp(i->first, "hostname") == 0) {
+				this->hostname = i->second;
+			}
+			if(strcmp(i->first, "amqp_port") == 0) {
+				int errorno = 0;
+				char *endptr;
+				this->port = strtol(i->second, &endptr, 10);
+				if(errorno != 0 || endptr == i->second) {
+					Error(Fmt("Invalid port"));
+					return false;
+				}
+			}
+			if(strcmp(i->first, "vhost") == 0) {
+				this->vhost = i->second;
+			}
+			if(strcmp(i->first, "username") == 0) {
+				this->username = i->second;
+			}
+			if(strcmp(i->first, "password") == 0) {
+				this->password = i->second;
+			}
+			if(strcmp(i->first, "queue_name") == 0) {
+				this->queue_name = i->second;
+			}
+			if(strcmp(i->first, "exchange") == 0) {
+				this->exchange = i->second;
+			}
+			if(strcmp(i->first, "routing_key") == 0) {
+				this->routing_key = i->second;
+			}
+		}
+		return true;
+	}
+
+	bool AMQP::CheckAllOptions() {
+		if(this->hostname.empty()) {
+			Error(Fmt("AMQP Hostname is not set"));
+			return false;
+		}
+		if(this->port <= 0 || this->port > 65535) {
+			Error(Fmt("Invalid AMQP port"));
+			return false;
+		}
+		if(this->vhost.empty()) {
+			Error(Fmt("AMQP vhost is not set"));
+			return false;
+		}
+		if(this->username.empty()) {
+			Error(Fmt("AMQP username is not set"));
+			return false;
+		}
+		if(this->password.empty()) {
+			Error(Fmt("AMQP password is not set"));
+			return false;
+		}
+		if(this->queue_name.empty()) {
+			Error(Fmt("AMQP queue name is not set"));
+			return false;
+		}
+		if(this->routing_key.empty()) {
+			Error(Fmt("AMQP routing key is not set"));
+			return false;
+		}
+
+		return true;
 	}
 
 	bool AMQP::DoInit(const WriterInfo& info, int num_fields, const zeek::threading::Field* const* fields) {
@@ -25,10 +109,7 @@ namespace zeek::logging::writer {
 		}
 
 		//open the socket connection
-		int status = amqp_socket_open(socket,
-			"localhost", //hostname
-			5672 //port
-		);
+		int status = amqp_socket_open(socket, this->hostname.c_str(), this->port);
 
 		if(status != 0) {
 			Error(Fmt("Cannot open TCP socket"));
@@ -37,13 +118,13 @@ namespace zeek::logging::writer {
 
 		//login
 		if(!handle_amqp_error(amqp_login(this->amqp_conn,
-			"/", //vhost
+			this->vhost.c_str(), //vhost
 			0, //channel_max
 			131072, //frame_max
 			0, //heartbeat
 			AMQP_SASL_METHOD_PLAIN, //sasl_method
-			"guest", //username
-			"guest"), //password
+			this->username.c_str(), //username
+			this->password.c_str()), //password
 			"Logging in")) {
 			return false;
 		}
@@ -55,7 +136,7 @@ namespace zeek::logging::writer {
 		}
 
 		//declare a queue
-		amqp_queue_declare(this->amqp_conn, 1, amqp_cstring_bytes("test_queue"), 0, 1, 0, 0, amqp_empty_table);
+		amqp_queue_declare(this->amqp_conn, 1, amqp_cstring_bytes(this->queue_name.c_str()), 0, 1, 0, 0, amqp_empty_table);
 		if(!handle_amqp_error(amqp_get_rpc_reply(this->amqp_conn),"Declaring queue")) {
 			return false;
 		}
@@ -79,8 +160,8 @@ namespace zeek::logging::writer {
 		int publish_result = amqp_basic_publish(
 			this->amqp_conn,
 			1, //channel
-			amqp_cstring_bytes(""), //exchange
-			amqp_cstring_bytes("test_queue"), //routing key
+			amqp_cstring_bytes(this->exchange.c_str()), //exchange
+			amqp_cstring_bytes(this->routing_key.c_str()), //routing key
 			0, // mandatory
 			0, // immediate
 			&props, // properties

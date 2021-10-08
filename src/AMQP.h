@@ -41,6 +41,20 @@ namespace zeek::logging::writer {
 			zeek::threading::formatter::TaggedJSON* tagged_json_formatter;
 			ODesc desc;
 
+			std::string hostname;
+			int port;
+			std::string vhost;
+			std::string username;
+			std::string password;
+			std::string queue_name;
+			std::string exchange;
+			std::string routing_key;
+
+			bool init_options;
+
+			void InitConfigOptions();
+			bool InitFilterOptions();
+			bool CheckAllOptions();
 			bool handle_amqp_error(amqp_rpc_reply_t x, char const *context);
 	};
 }

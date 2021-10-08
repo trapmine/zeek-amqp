@@ -1,1 +1,10 @@
+module LogAMQP;
 
+const hostname: string;
+const amqp_port: int;
+const vhost: string;
+const username: string;
+const password: string;
+const queue_name: string;
+const exchange: string;
+const routing_key: string;
